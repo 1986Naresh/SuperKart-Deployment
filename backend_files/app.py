@@ -14,7 +14,17 @@ EXPECTED_FEATURES = [
     'Product_MRP', 'Store_Size', 'Store_Location_City_Type', 'Store_Type'
 ]
 
+def validate_columns(df):
+    missing = [col for col in EXPECTED_FEATURES if col not in df.columns]
+
+    if missing:
+        raise ValueError(
+            f"Missing required fields: {', '.join(missing)}"
+        )
+
 def preprocess_data(df):
+    validate_columns(df)
+
     # Select only the features the model was trained on
     df_selected = df[EXPECTED_FEATURES].copy()
     
@@ -55,6 +65,21 @@ def predict_batch():
         return jsonify(pred_dict)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+        
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "message": "SuperKart backend is running"
+    }), 200
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "healthy",
+        "model_loaded": model is not None
+    }), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=7860)
+    app.run(host='0.0.0.0', port=7860,debug=False)
+ # app.run(debug=True)
