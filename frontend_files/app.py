@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import os
+import io
+from io import BytesIO
 
 st.set_page_config(page_title="SuperKart Sales Prediction", layout="wide")
 
@@ -56,12 +58,17 @@ else:
     st.header("Batch Inference")
     st.write("Upload a CSV file containing product and store details.")
 
+    if "batch_results" not in st.session_state:
+      st.session_state.batch_results = None
+    
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file is not None:
         if st.button("Predict Batch Sales"):
             try:
-                files = {'file': (uploaded_file.name,uploaded_file.getvalue(), "text/csv")}
+                file_bytes= uploaded_file.getvalue()
+
+                files = {'file': (uploaded_file.name,file_bytes, "text/csv")}
                 response = requests.post(f"{backend_url}/v1/predictbatch", files=files, timeout=300)
 
                 if response.status_code == 200:
@@ -69,20 +76,27 @@ else:
                     st.success("Predictions successfully generated!")
 
                     # Read the uploaded file to append predictions
-                    df = pd.read_csv(uploaded_file)
+                    df = pd.read_csv(BytesIO(file_bytes))
+
                     df['Predicted_Sales'] = [predictions.get(str(i)) for i in range(len(df))]
-                    st.dataframe(df.head())
+                    #st.dataframe(df.head())
+                    
+                    # Persist the result
+                    st.session_state.batch_results = df
 
                     # Provide download link
-                    csv = df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Download Predictions as CSV",
-                        data=csv,
-                        file_name='batch_predictions.csv',
-                        mime='text/csv',
-                    )
+                   # csv = df.to_csv(index=False).encode('utf-8')
+                   # st.download_button(
+                   #     label="Download Predictions as CSV",
+                   #     data=csv,
+                   #     file_name='batch_predictions.csv',
+                   #     mime='text/csv',
+                    #)
                 else:
-                    st.error(f"Error from backend: {response.text}")
+                    st.error(
+                        f"Backed returned HTTP {response.status_code}"
+                        f"{response.text}"
+                        )
 
             except requests.exceptions.Timeout:
                 st.error("Backend request timed out. Please try again.")
@@ -92,5 +106,23 @@ else:
 
             except requests.exceptions.RequestException as e:
                 st.error(f"API request failed: {e}")
-            #except Exception as e:
-             #   st.error(f"Failed to connect to backend: {e}")
+            except Exception as e:
+                st.exception(e)
+
+if st.session_state.batch_results is not None:
+
+    df = st.session_state.batch_results
+
+    st.success("Predictions successfully generated!")
+
+    st.dataframe(df.head())
+
+    csv = df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Predictions as CSV",
+        data=csv,
+        file_name="batch_predictions.csv",
+        mime="text/csv",
+        key="download_batch_predictions"
+    )
