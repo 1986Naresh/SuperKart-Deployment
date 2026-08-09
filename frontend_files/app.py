@@ -11,7 +11,8 @@ st.sidebar.header("Navigation")
 mode = st.sidebar.radio("Select Inference Mode", ["Online Inference", "Batch Inference"])
 
 # Backend API URL 
-backend_url = st.sidebar.text_input("Backend API URL", value="http://backend:7860")
+#backend_url = st.sidebar.text_input("Backend API URL", value="http://backend:7860")
+backend_url = os.getenv("BACKEND_URL", "http://localhost:7860")
 
 if mode == "Online Inference":
     st.header("Online Inference")
@@ -20,15 +21,15 @@ if mode == "Online Inference":
     col1, col2 = st.columns(2)
     
     with col1:
-        product_weight = st.number_input("Product Weight", min_value=0.0, value=12.0)
+        product_weight = st.number_input("Product Weight", min_value=4.0, value=22.0)
         product_sugar_content = st.selectbox("Product Sugar Content", ['Low Sugar', 'Regular', 'No Sugar'])
-        product_allocated_area = st.number_input("Product Allocated Area", min_value=0.0, max_value=1.0, value=0.05)
-        product_mrp = st.number_input("Product MRP", min_value=0.0, value=150.0)
+        product_allocated_area = st.number_input("Product Allocated Area", min_value=0.003, max_value=0.30, value=0.05, step=0.001, format="%.3f")
+        product_mrp = st.number_input("Product MRP", min_value=31.0, max_value=266.0, value=150.0, step=1.0)
         
     with col2:
         store_size = st.selectbox("Store Size", ['Small', 'Medium', 'High'])
         store_location_city_type = st.selectbox("Store Location City Type", ['Tier 1', 'Tier 2', 'Tier 3'])
-        store_type = st.selectbox("Store Type", ['Supermarket Type1', 'Supermarket Type2', 'Supermarket Type3', 'Departmental Store', 'Food Mart'])
+        store_type = st.selectbox("Store Type", ['Supermarket Type1', 'Supermarket Type2', 'Departmental Store', 'Food Mart'])
         
     if st.button("Predict Sales"):
         payload = {
@@ -41,7 +42,7 @@ if mode == "Online Inference":
             "Store_Type": store_type
         }
         try:
-            response = requests.post(f"{backend_url}/v1/predict", json=payload)
+            response = requests.post(f"{backend_url}/v1/predict", json=payload, timeout=10)
             if response.status_code == 200:
                 prediction = response.json().get('prediction')
                 st.success(f"Predicted Sales: {prediction:.2f}")
@@ -59,8 +60,8 @@ else:
     if uploaded_file is not None:
         if st.button("Predict Batch Sales"):
             try:
-                files = {'file': uploaded_file.getvalue()}
-                response = requests.post(f"{backend_url}/v1/predictbatch", files=files)
+                files = {'file': (uploaded_file.name,uploaded_file.getvalue(), "text/csv")}
+                response = requests.post(f"{backend_url}/v1/predictbatch", files=files, timeout=30)
                 
                 if response.status_code == 200:
                     predictions = response.json()
@@ -81,5 +82,14 @@ else:
                     )
                 else:
                     st.error(f"Error from backend: {response.text}")
-            except Exception as e:
-                st.error(f"Failed to connect to backend: {e}")
+
+            except requests.exceptions.Timeout:
+                st.error("Backend request timed out. Please try again.")
+
+            except requests.exceptions.ConnectionError:
+                st.error("Unable to connect to the backend service.")
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"API request failed: {e}")
+            #except Exception as e:
+             #   st.error(f"Failed to connect to backend: {e}")
