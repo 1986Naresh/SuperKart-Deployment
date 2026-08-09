@@ -35,7 +35,7 @@ def preprocess_data(df):
     df_selected['Product_Sugar_Content'] = df_selected['Product_Sugar_Content'].replace(sugar_mapping)
     
     return df_selected
-    
+
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
@@ -80,12 +80,6 @@ def predict_batch():
         return jsonify(pred_dict)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
-
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({
-        "message": "SuperKart backend is running"
-    }), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860,debug=False)
