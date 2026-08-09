@@ -35,6 +35,21 @@ def preprocess_data(df):
     df_selected['Product_Sugar_Content'] = df_selected['Product_Sugar_Content'].replace(sugar_mapping)
     
     return df_selected
+    
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "message": "SuperKart backend is running"
+    }), 200
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "healthy",
+        "model_loaded": model is not None
+    }), 200
+
 
 @app.route('/v1/predict', methods=['POST'])
 def predict():
@@ -65,19 +80,11 @@ def predict_batch():
         return jsonify(pred_dict)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
-        
+
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
         "message": "SuperKart backend is running"
-    }), 200
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({
-        "status": "healthy",
-        "model_loaded": model is not None
     }), 200
 
 if __name__ == '__main__':
