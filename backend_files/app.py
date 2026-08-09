@@ -27,13 +27,13 @@ def preprocess_data(df):
 
     # Select only the features the model was trained on
     df_selected = df[EXPECTED_FEATURES].copy()
-    
+
     # Map Product_Sugar_Content to numeric values just like in the training phase
     sugar_mapping = {'No Sugar': 0, 'Low Sugar': 1, 'Regular': 2, 'reg': 2}
-    
+
     # Apply mapping. If it's already numeric, it will keep its value.
     df_selected['Product_Sugar_Content'] = df_selected['Product_Sugar_Content'].replace(sugar_mapping)
-    
+
     return df_selected
 
 @app.route("/", methods=["GET"])
@@ -57,7 +57,7 @@ def predict():
         data = request.get_json()
         df = pd.DataFrame([data])
         df_processed = preprocess_data(df)
-        
+
         prediction = model.predict(df_processed)
         return jsonify({'prediction': float(prediction[0])})
     except Exception as e:
@@ -68,13 +68,13 @@ def predict_batch():
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
-            
+
         file = request.files['file']
         df = pd.read_csv(file)
-        
+
         df_processed = preprocess_data(df)
         predictions = model.predict(df_processed)
-        
+
         # Return predictions as a dictionary (index -> prediction)
         pred_dict = {str(i): float(pred) for i, pred in enumerate(predictions)}
         return jsonify(pred_dict)
