@@ -62,7 +62,7 @@ else:
         if st.button("Predict Batch Sales"):
             try:
                 files = {'file': (uploaded_file.name,uploaded_file.getvalue(), "text/csv")}
-                response = requests.post(f"{backend_url}/v1/predictbatch", files=files, timeout=30)
+                response = requests.post(f"{backend_url}/v1/predictbatch", files=files, timeout=300)
 
                 if response.status_code == 200:
                     predictions = response.json()
